@@ -10,7 +10,7 @@
 // The beta coefficient of the thermistor (usually 3000-4000)
 #define BCOEFFICIENT 4220
 // the value of the 'other' resistor
-#define SERIESRESISTOR 10000    
+#define SERIESRESISTOR 11000    
  
 int samples[NUMSAMPLES];
  
