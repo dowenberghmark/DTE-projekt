@@ -53,6 +53,6 @@ int tempReader(void) {
   
   int result = (int) truncf(steinhart); 
   //delay(1000);
-  Serial.print("resultat:");Serial.println(result);
+ // Serial.print("resultat:");Serial.println(result);
   return result;
 }

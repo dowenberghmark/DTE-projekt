@@ -2,6 +2,7 @@
 #define SWITCH_TIME_SEC 10
 //for reading temp
 #define TIME_TO_READ 10
+
 int digit1 = 12;    //PWM Display pin 1
 int digit2 = 9;    //PWM Display pin 2
 int digit3 = 8;     //PWM Display pin 6
@@ -13,21 +14,37 @@ int segA = 11;    //Display pin 14
 int segB = 7;     //Display pin 16
 int segC = 4;     //Display pin 13
 int segD = 2;     //Display pin 3
-int segDP = 3;  //Decimal point
+int segDP = 13;  //Decimal point
 int segE = A1;    //Display pin 5
 int segF = 10;     //Display pin 11
 int segG = 5;     //Display pin 15
 
+int buttonPin = 3;
+int switchPin = A4; 
+
+int ff_ClockSR = 1;
+int ff_ClockRC = A2;
+int ff_out = A0;
+//int flipflopRes = A0;
+
 int temp = 25;
-int iter = 1;
-int displayFlag = 1; 
-  
+
+volatile int iter = 1;
+volatile int displayFlag = 1; 
+
+volatile long timeOffset = 0;
+volatile long currentTime;
+volatile long ff_flag = 0;
+
+boolean currentState = LOW;//stroage for current button state
+boolean lastState = LOW;//storage for last button state
   
 void setup() {
   pinMode(segA, OUTPUT);
   pinMode(segB, OUTPUT);
   pinMode(segC, OUTPUT);
-  pinMode(segD, OUTPUT);
+  pinMode(segD, OUTPUT);  
+  pinMode(segDP, OUTPUT);
   pinMode(segE, OUTPUT);
   pinMode(segF, OUTPUT);
   pinMode(segG, OUTPUT);
@@ -36,59 +53,75 @@ void setup() {
   pinMode(digit2, OUTPUT);
   pinMode(digit3, OUTPUT);
   pinMode(digit4, OUTPUT);
-
-
+  
+  pinMode(buttonPin, INPUT);
+  
+  pinMode(ff_ClockSR, OUTPUT);
+  pinMode(ff_clockRC, OUTPUT);
+  pinMode(ff_out, INPUT);
+  
+  attachInterrupt( digitalPinToInterrupt( buttonPin ), f, CHANGE);
+  
   analogReference(DEFAULT);
   Serial.begin(9600);
-
-  pinMode(13, OUTPUT);
-}
+  }
 
 
 void loop() {
-  // put your main code here, to run repeatedly: NO
-  int loopOnSecond = millis()/1000;
-  int HHMM = 0;
+ 
+  currentTime = millis();
   
+ // Serial.print("Offset: "); Serial.println(timeOffset);
+  // put your main code here, to run repeatedly: NO
+  int loopOnSecond = (millis() - timeOffset) / 1000;
+  int HHMM = 0;
+
+  if(loopOnSecond/60 > 90){
+    digitalWrite(switchPin, LOW);
+  } 
+  switchTrigger();
+ 
+
+  //read temperature every (TIME_TO_READ)th second
   if (loopOnSecond % TIME_TO_READ == 0){
-    temp = tempReader();  
+    temp = tempReader();
+    digitalWrite(ff_ClockSR, HIGH);
+    digitalWrite(ff_ClockRC, HIGH);
   }
   
-  
+  //Deciding between displaying temperature and time
   if ( loopOnSecond > (SWITCH_TIME_SEC * iter ) && displayFlag == 1 ){
     displayFlag = 0;
     iter++;
-    //displayNumber(temp*10, 2); 
-    //Serial.print(our modulevalue: ");Serial.println(x);
-    Serial.print("Displaying time: ");Serial.println(HHMM);
+    //Serial.print("Displaying time: ");Serial.println(HHMM);
     
   } else if (loopOnSecond > (SWITCH_TIME_SEC * iter ) && displayFlag == 0 ){
     displayFlag = 1;
     iter++;
-    //HHMM = formatSecondsToHHMM( loopOnSecond );
-    Serial.print("displaying temp ");Serial.println(temp);
-    //displayNumber(HHMM, 1); 
+    //Serial.print("displaying temp ");Serial.println(temp);
     
   }
 
+  //Display TEMP or TIME
   if (displayFlag == 1 ){
     displayNumber(temp*10, 2); 
-    //Serial.println("Displaying tempeture");
-    
   } else if(displayFlag == 0 ){
-    HHMM = formatSecondsToHHMM( loopOnSecond );
-    //Serial.print("My time: ");Serial.println(HHMM);
-    displayNumber(HHMM, 1);  
+      HHMM = formatSecondsToHHMM( loopOnSecond );
+      displayNumber(HHMM, 1);
   }
-  
-  Serial.println(displayFlag);
-  //digitalWrite(digit3, HIGH);
-  //lightNumber(2);
-  
-  //displayNumber(millis() / 1000);
+
+  tempOK = digitalRead(flipflopRes);
+  if (tempOK == LOW) {
+      digitalWrite(switchPin, LOW);
+    } else {
+      digitalWrite(switchPin, HIGH);
+      }
+       
 }
 
-//convert milliseconds from program startrunning to the format Hours:Minutes
+
+
+//Convert milliseconds from program startrunning to the format Hours:Minutes
 int formatSecondsToHHMM(int currentMillis){
   //currentMillis /= 1000;
   
@@ -106,6 +139,35 @@ int formatSecondsToHHMM(int currentMillis){
     int HHMM = hours * 100 + (int)minutes;
     return HHMM;
   }
+}
+
+// Write 1 or 0 to switchPin
+void switchTrigger(){
+  int flipflop = digitalRead(ff_out);
+   if(ff_flag == 0){
+    digitalWrite(switchPin, HIGH);
+
+  else if(ff_flag == 1){
+     digitalWrite(switchPin, (digitalRead(ff_out));
+  }
+}
+
+
+//ISR
+void f() {
+  Serial.print("Offset: "); Serial.println(timeOffset);
+  
+  currentState = digitalRead(buttonPin);
+  if (currentState == HIGH && lastState == LOW){//if button has just been pressed
+    //Serial.println("pressed");
+    //delay(1);//crude form of button debouncing
+    displayFlag = 1;
+    iter = 1; 
+    timeOffset = currentTime;
+    ff_flag = 1;
+  } 
+  lastState = currentState;
+  
 }
 
 

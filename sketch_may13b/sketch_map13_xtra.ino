@@ -5,7 +5,7 @@ void displayNumber(int toDisplay, int type) {
 #define DIGIT_ON  HIGH
 #define DIGIT_OFF  LOW
 
-  long beginTime = millis();
+  long beginTime = millis() - timeOffset;
   int temp;
 
   for(int digit = 4 ; digit > 0 ; digit--) {
@@ -30,6 +30,9 @@ void displayNumber(int toDisplay, int type) {
     case 1: //TIME
     //Turn on the right segments for this digit
     lightNumber(toDisplay % 10);
+    if (digit == 2) {
+        digitalWrite(segDP, HIGH);
+      }
     toDisplay /= 10;
     break;
     case 2: //TEMPERATURE
@@ -62,6 +65,7 @@ void displayNumber(int toDisplay, int type) {
     digitalWrite(digit2, DIGIT_OFF);
     digitalWrite(digit3, DIGIT_OFF);
     digitalWrite(digit4, DIGIT_OFF);
+    digitalWrite(segDP, DIGIT_OFF);
   }
 
   while( (millis() - beginTime) < 10) ; 
