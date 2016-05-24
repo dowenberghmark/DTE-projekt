@@ -57,7 +57,7 @@ void setup() {
   pinMode(buttonPin, INPUT);
   
   pinMode(ff_ClockSR, OUTPUT);
-  pinMode(ff_clockRC, OUTPUT);
+  pinMode(ff_ClockRC, OUTPUT);
   pinMode(ff_out, INPUT);
   
   attachInterrupt( digitalPinToInterrupt( buttonPin ), f, CHANGE);
@@ -85,8 +85,7 @@ void loop() {
   //read temperature every (TIME_TO_READ)th second
   if (loopOnSecond % TIME_TO_READ == 0){
     temp = tempReader();
-    digitalWrite(ff_ClockSR, HIGH);
-    digitalWrite(ff_ClockRC, HIGH);
+    flipflop_handler(loopOnSecond); 
   }
   
   //Deciding between displaying temperature and time
@@ -110,12 +109,7 @@ void loop() {
       displayNumber(HHMM, 1);
   }
 
-  tempOK = digitalRead(flipflopRes);
-  if (tempOK == LOW) {
-      digitalWrite(switchPin, LOW);
-    } else {
-      digitalWrite(switchPin, HIGH);
-      }
+  
        
 }
 
@@ -143,14 +137,15 @@ int formatSecondsToHHMM(int currentMillis){
 
 // Write 1 or 0 to switchPin
 void switchTrigger(){
-  int flipflop = digitalRead(ff_out);
-   if(ff_flag == 0){
-    digitalWrite(switchPin, HIGH);
-
-  else if(ff_flag == 1){
-     digitalWrite(switchPin, (digitalRead(ff_out));
+    int flipflop = digitalRead(ff_out);
+    if(ff_flag == 0){
+      digitalWrite(switchPin, HIGH);
+    }
+    if(ff_flag == 1){
+       digitalWrite(switchPin, LOW);
+    }
+    
   }
-}
 
 
 //ISR
@@ -164,10 +159,32 @@ void f() {
     displayFlag = 1;
     iter = 1; 
     timeOffset = currentTime;
-    ff_flag = 1;
+    ff_flag = 0;
   } 
   lastState = currentState;
   
 }
 
+void flipflop_handler(int bornTime){
+  
+    int readValue = 0;
+    int minFive = 15;
+    digitalWrite(ff_ClockSR, HIGH);
+    delay(4);
+    digitalWrite(ff_ClockSR, LOW);
+    delay(4);
+    digitalWrite(ff_ClockRC, HIGH);
+    delay(4);
+    digitalWrite(ff_ClockRC, LOW);
+
+    readValue = digitalRead(ff_out);
+
+    if (readValue == 1 && ff_flag == 0){
+
+      ff_flag = 1;
+    }
+    else if(readValue == 0 && ff_flag == 0 &&  bornTime > minFive){
+      ff_flag = 1;    
+    }
+}
 

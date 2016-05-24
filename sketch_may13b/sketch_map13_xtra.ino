@@ -68,7 +68,7 @@ void displayNumber(int toDisplay, int type) {
     digitalWrite(segDP, DIGIT_OFF);
   }
 
-  while( (millis() - beginTime) < 10) ; 
+  while( (millis() - beginTime) < 10){} ; 
   //Wait for 20ms to pass before we paint the display again
 }
 
